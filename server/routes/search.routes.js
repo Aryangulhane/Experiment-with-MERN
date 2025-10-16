@@ -17,9 +17,9 @@ router.get('/', async (req, res) => {
     const { q, page = 1, limit = 5, tags } = req.query; // Set default limit to 5 to match service if desired
 
     // Validate the search query (at least one of 'q' or 'tags' should be present)
-    if (!q && (!tags || tags.length === 0)) {
-        return res.status(400).json({ message: 'A search query (q) or tags are required.' });
-    }
+    //if (!q && (!tags || tags.length === 0)) {
+       // return res.status(400).json({ message: 'A search query (q) or tags are required.' });
+    //}
 
     // Prepare tags for the service:
     // If 'tags' exists and is a string, split it into an array, otherwise default to an empty array.
