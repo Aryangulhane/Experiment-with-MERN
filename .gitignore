@@ -40,6 +40,8 @@ frontend/studio/.schema
 frontend/studio/.vscode/
 frontend/studio/dist/
 frontend/studio/.eslintcache
+frontend/studio/middleware.ts
+frontend/studio/middleware.js
 
 server/node_modules/
 server/.env
