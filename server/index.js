@@ -10,6 +10,9 @@ const tagsRoutes = require('./routes/tags.routes.js');
 const searchRoutes = require('./routes/search.routes.js');
 const suggestionsRoutes = require('./routes/suggestions.routes.js');
 const categoriesRoutes = require('./routes/categories.routes.js');
+// server/index.js
+const webhookRoutes = require('./routes/webhook.routes'); // Assuming you put it here
+app.use('/api', webhookRoutes); // Or whatever your base route is
 
 // 2. Create an Express application
 const app = express();
