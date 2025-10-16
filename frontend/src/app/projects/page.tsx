@@ -16,7 +16,7 @@ import { FaGithub, FaExternalLinkAlt, FaSearch } from "react-icons/fa";
 import { useDebounce } from '@/hooks/useDebounce'; 
 
 // --- IMPORTANT: Set this to your local or deployed backend URL ---
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // --- Framer Motion Variants (from your original code) ---
 const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };

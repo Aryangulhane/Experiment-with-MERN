@@ -9,6 +9,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 // This component will receive the currently selected tags (value)
 // and a function to call when they change (onChange)
 function TagInput({ value, onChange }) {
@@ -25,7 +27,7 @@ function TagInput({ value, onChange }) {
 
     setLoading(true);
     // Fetch tag suggestions from our backend
-    axios.get(`http://localhost:5000/api/tags/search?q=${inputValue}`)
+    axios.get(`${API_BASE_URL}/tags/search?q=${inputValue}`)
       .then(response => {
         setOptions(response.data.map(tag => tag.name));
         setLoading(false);
