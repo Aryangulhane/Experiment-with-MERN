@@ -29,8 +29,6 @@ const tagSchema = new Schema({
   }
 });
 
-// Create an index to speed up searches for tags by name [cite: 190]
-tagSchema.index({ name: 1 });
 
 const Tag = mongoose.model('Tag', tagSchema);
 
