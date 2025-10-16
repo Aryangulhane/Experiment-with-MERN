@@ -1,75 +1,54 @@
-# -----------------------------------------------------------------------------
-# .gitignore for a Full-Stack Project (e.g., Next.js Frontend + Node.js Backend)
-# Place this file in the root directory of your entire repository.
-# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.env
+.env.local
+.env.*.local
+.gitattributes
+.idea/
+.vscode/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.pnpm-store/
+.history/
+*.sublime-project
+*.sublime-workspace
 
-# =============================================================================
-# GLOBAL / OS Specific / Environment Files
-# These patterns apply to the root of the repository and common OS/tool files.
-# =============================================================================
-.DS_Store                      # macOS generated files
-Thumbs.db                      # Windows generated files
-.env                           # Generic environment file (e.g., in root)
-.env.local                     # Local environment file (e.g., in root)
-.env.*.local                   # All local environment files (e.g., .env.development.local)
-.gitattributes                 # Often auto-generated, can be ignored unless explicitly managed
-.idea/                         # JetBrains IDE (IntelliJ, WebStorm, etc.) project files
-.vscode/                       # VS Code specific settings (user-specific, usually not committed)
-npm-debug.log* # npm debug logs
-yarn-debug.log* # Yarn debug logs
-yarn-error.log* # Yarn error logs
-.pnpm-debug.log* # pnpm debug logs
-.pnpm-store/                   # pnpm content-addressable store
-.history/                      # VS Code local history directory
-*.sublime-project              # Sublime Text project files
-*.sublime-workspace            # Sublime Text workspace files
+frontend/out/
+frontend/.next/
+frontend/node_modules/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.next/cache/
+frontend/public/uploads/
+frontend/.next/types/
+frontend/dist/
+frontend/.eslintcache
 
-# =============================================================================
-# FRONTEND (Next.js Application specific)
-# These patterns apply relative to your 'frontend' directory.
-# =============================================================================
-frontend/out/                  # Next.js export output (if using `next export`)
-frontend/.next/                # Next.js build output, cache, and compiled files
-frontend/node_modules/         # Frontend JavaScript dependencies
-frontend/.env                  # Frontend local environment files
-frontend/.env.local            # Frontend local environment files
-frontend/.env.development.local # Frontend local environment files for development
-frontend/.env.production.local # Frontend local environment files for production
-frontend/npm-debug.log* # Frontend npm debug logs
-frontend/yarn-debug.log* # Frontend Yarn debug logs
-frontend/yarn-error.log* # Frontend Yarn error logs
-frontend/.next/cache/          # Next.js specific cache directory
-frontend/public/uploads/       # If your frontend handles local file uploads (e.g., during dev)
-frontend/.next/types/          # Generated TypeScript types by Next.js (can be large)
-frontend/dist/                 # Common output directory for frontend builds (if not .next/out)
-frontend/.eslintcache          # ESLint cache file
+frontend/studio/.next/
+frontend/studio/node_modules/
+frontend/studio/.env
+frontend/studio/.env.local
+frontend/studio/.sanity/
+frontend/studio/.schema
+frontend/studio/.vscode/
+frontend/studio/dist/
+frontend/studio/.eslintcache
 
-# =============================================================================
-# SANITY STUDIO (Nested within frontend or standalone)
-# Adjust paths if your Sanity studio is not in `frontend/studio`.
-# =============================================================================
-frontend/studio/.next/         # Sanity Studio's Next.js build output (if Next.js based)
-frontend/studio/node_modules/  # Sanity Studio JavaScript dependencies
-frontend/studio/.env           # Sanity Studio local environment files
-frontend/studio/.env.local     # Sanity Studio local environment files
-frontend/studio/.sanity/       # Sanity CLI/development specific files
-frontend/studio/.schema        # Generated Sanity schema files (if any)
-frontend/studio/.vscode/       # Sanity Studio specific VS Code settings (user-specific)
-frontend/studio/dist/          # Sanity Studio build output (if not using Next.js build)
-frontend/studio/.eslintcache   # Sanity Studio ESLint cache file
-
-# =============================================================================
-# BACKEND (Node.js/Express/MERN Application specific)
-# These patterns apply relative to your 'server' directory.
-# =============================================================================
-server/node_modules/           # Backend JavaScript dependencies
-server/.env                    # Backend local environment files
-server/.env.local              # Backend local environment files
-server/npm-debug.log* # Backend npm debug logs
-server/yarn-debug.log* # Backend Yarn debug logs
-server/yarn-error.log* # Backend Yarn error logs
-server/build/                  # Common output directory for compiled backend code (e.g., TypeScript)
-server/dist/                   # Another common output directory for compiled backend code
-server/logs/                   # Any server-side log files generated during runtime
-server/tmp/                    # Temporary files generated by the backend server
-server/.eslintcache            # Backend ESLint cache file
+server/node_modules/
+server/.env
+server/.env.local
+server/npm-debug.log*
+server/yarn-debug.log*
+server/yarn-error.log*
+server/build/
+server/dist/
+server/logs/
+server/tmp/
+server/.eslintcache
