@@ -72,7 +72,7 @@ app.use('/api/tags', tagsRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/suggestions', suggestionsRoutes);
 app.use('/api/categories', categoriesRoutes);
-app.use('/api/webhooks', webhookRoutes); // Typically /api/webhooks or similar specific path
+app.use('/api', webhookRoutes); // Typically /api/webhooks or similar specific path
 
 // --- Catch-all for undefined routes (404 Not Found) ---
 // This middleware should be placed AFTER all valid routes
