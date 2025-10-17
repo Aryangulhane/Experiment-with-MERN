@@ -4,6 +4,8 @@ const crypto = require('crypto');
 const router = express.Router();
 // Import the Project Model to use for database operations
 const ProjectModel = require('../models/projects.model'); 
+// NOTE: You will also need to import the sanity client and image builder here if you 
+// decide to resolve image URLs on the backend, which is recommended.
 
 // --- Get secrets from environment variables ---
 const sanityWebhookSecret = process.env.SANITY_WEBHOOK_SECRET;
@@ -11,7 +13,7 @@ const frontendUrl = process.env.NEXT_PUBLIC_VERCEL_FRONTEND_URL;
 const revalidateSecret = process.env.NEXT_REVALIDATE_SECRET; 
 
 router.post('/webhook/sync', express.json(), async (req, res) => {
-    // --- 1. Enhanced Security Checks ---
+    // ... (Security Checks - Code remains unchanged) ...
     if (!sanityWebhookSecret) {
         console.error('🔴 Sanity webhook secret is not configured on the server.');
         return res.status(500).send('Webhook secret not configured.');
@@ -23,7 +25,6 @@ router.post('/webhook/sync', express.json(), async (req, res) => {
         return res.status(401).send('Unauthorized: No signature header found.');
     }
 
-    // --- 2. Robust Signature Verification ---
     try {
         const hmac = crypto.createHmac('sha256', sanityWebhookSecret);
         hmac.update(JSON.stringify(req.body));
@@ -46,21 +47,21 @@ router.post('/webhook/sync', express.json(), async (req, res) => {
         if (_type === 'project' && (operation === 'create' || operation === 'update')) {
             console.log(`Attempting to sync Sanity Project ${_id} to MongoDB...`);
 
-            // Map fields from the Sanity payload (which uses keys like 'projectName', 'tags', etc.)
+            // Map fields from the Sanity payload
             const projectPayload = {
-                // Use Sanity's unique ID as the foreign key in MongoDB
                 sanityId: _id, 
-                
-                // Map the rest of the fields directly. 
-                // NOTE: 'projectName' may be 'title' if your Sanity schema uses 'title' instead of 'projectName'
+                // Sanity uses the field name you defined, which is 'projectName'
                 projectName: req.body.projectName, 
                 description: req.body.description,
                 liveUrl: req.body.liveUrl,
                 githubUrl: req.body.githubUrl,
-                imageUrl: req.body.imageUrl, 
                 tags: req.body.tags || [],
-                // Pass an empty array since the required validation was removed
-                categories: [], 
+                categories: [], // Empty array as the required validation was removed
+                
+                // === IMAGE URL WARNING/PLACEHOLDER ===
+                // This value MUST be a valid, public URL string. 
+                // If Sanity sends a reference object, this line will fail or store garbage data.
+                imageUrl: req.body.imageUrl || 'image-url-resolution-needed', 
             };
             
             // Upsert Logic: Find by the unique sanityId. Insert if not found (upsert: true).
@@ -70,19 +71,19 @@ router.post('/webhook/sync', express.json(), async (req, res) => {
                 { 
                     upsert: true, 
                     new: true, 
-                    runValidators: true // Ensure required fields (like projectName and sanityId) are present
+                    runValidators: true 
                 }
             );
 
             console.log(`✅ MongoDB synced: Project ${savedProject.projectName} (Mongo ID: ${savedProject._id}, Operation: ${operation}).`);
         }
-
+        
         // --- 4. Trigger Frontend Revalidation (The key to seeing updates live) ---
         if (frontendUrl && revalidateSecret) {
             const pathToRevalidate = '/projects'; 
             console.log(`🚀 Triggering revalidation for path: ${pathToRevalidate}`);
 
-            // Send a POST request to your Next.js app's revalidation API route.
+            // ... (revalidation fetch logic remains unchanged) ...
             const revalidateResponse = await fetch(`${frontendUrl}/api/revalidate`, {
                 method: 'POST',
                 headers: {
@@ -109,7 +110,6 @@ router.post('/webhook/sync', express.json(), async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error processing webhook payload or syncing DB:', error);
-        // It's crucial to return a 500 status on failure so Sanity attempts to retry the webhook
         res.status(500).json({ message: 'Failed to process webhook.', details: error.message }); 
     }
 });
