@@ -1,36 +1,83 @@
-// server/routes/yourWebhookRoute.js or wherever your webhook logic is
+// server/routes/webhook.routes.js
 const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 
+// --- Get secrets from environment variables ---
 const sanityWebhookSecret = process.env.SANITY_WEBHOOK_SECRET;
+const frontendUrl = process.env.NEXT_PUBLIC_VERCEL_FRONTEND_URL; // e.g., https://your-frontend.vercel.app
+const revalidateSecret = process.env.NEXT_REVALIDATE_SECRET; // A secret token you create for the revalidation endpoint
 
-router.post('/webhook/sync', express.json({ type: 'application/json' }), async (req, res) => {
-  // 1. Verify the signature
+router.post('/webhook/sync', express.json(), async (req, res) => {
+  // --- 1. Enhanced Security Checks ---
+  if (!sanityWebhookSecret) {
+    console.error('🔴 Sanity webhook secret is not configured on the server.');
+    return res.status(500).send('Webhook secret not configured.');
+  }
+
   const signature = req.headers['sanity-signature'];
   if (!signature) {
-    return res.status(401).send('No signature header found');
+    console.warn('⚠️ No signature header found on incoming webhook request.');
+    return res.status(401).send('Unauthorized: No signature header found.');
   }
 
-  const hmac = crypto.createHmac('sha256', sanityWebhookSecret);
-  hmac.update(JSON.stringify(req.body));
-  const digest = hmac.digest('hex');
+  // --- 2. Robust Signature Verification ---
+  try {
+    const hmac = crypto.createHmac('sha256', sanityWebhookSecret);
+    hmac.update(JSON.stringify(req.body));
+    const digest = hmac.digest('hex');
 
-  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest))) {
-    return res.status(401).send('Invalid signature');
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest))) {
+      console.warn('🚨 Invalid signature on incoming webhook request.');
+      return res.status(401).send('Unauthorized: Invalid signature.');
+    }
+  } catch (error) {
+    console.error('❌ Error during webhook signature verification:', error);
+    return res.status(500).send('Internal Server Error during signature verification.');
   }
 
-  // 2. If signature is valid, process the webhook payload
-  const { _id, _type, operation } = req.body;
-  console.log(`Received webhook for ${_type} (ID: ${_id}, Operation: ${operation})`);
+  // --- 3. Process the Validated Payload ---
+  try {
+    const { _id, _type, operation } = req.body;
+    console.log(`✅ Webhook received and validated for type: ${_type}, ID: ${_id}, Operation: ${operation}`);
 
-  // Here you would add logic to:
-  // - Invalidate a cache
-  // - Rebuild static pages (if using ISR/SSG)
-  // - Trigger a data refresh for your frontend
-  // For a simple MERN app, this might just log the event.
+    // --- 4. Trigger Frontend Revalidation (The key to seeing updates live) ---
+    if (frontendUrl && revalidateSecret) {
+      // Define the paths on your frontend you want to update.
+      // For a project change, you want to update the main projects page.
+      const pathToRevalidate = '/projects'; 
 
-  res.status(200).send('Webhook received and processed.');
+      console.log(`🚀 Triggering revalidation for path: ${pathToRevalidate}`);
+
+      // Send a POST request to your Next.js app's revalidation API route.
+      const revalidateResponse = await fetch(`${frontendUrl}/api/revalidate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          secret: revalidateSecret,
+          path: pathToRevalidate,
+        }),
+      });
+
+      if (!revalidateResponse.ok) {
+        const errorText = await revalidateResponse.text();
+        console.error(`❌ Frontend revalidation failed with status ${revalidateResponse.status}:`, errorText);
+      } else {
+        const responseJson = await revalidateResponse.json();
+        console.log('✅ Frontend revalidation successful:', responseJson);
+      }
+    } else {
+      console.warn('⚠️ Frontend URL or revalidation secret not set. Skipping revalidation step.');
+    }
+
+    res.status(200).json({ message: 'Webhook processed and revalidation triggered.' });
+
+  } catch (error) {
+    console.error('❌ Error processing webhook payload or triggering revalidation:', error);
+    res.status(500).json({ message: 'Failed to process webhook.' });
+  }
 });
 
 module.exports = router;
