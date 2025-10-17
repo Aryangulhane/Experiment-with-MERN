@@ -76,11 +76,11 @@ app.use('/api/webhooks', webhookRoutes); // Typically /api/webhooks or similar s
 
 // --- Catch-all for undefined routes (404 Not Found) ---
 // This middleware should be placed AFTER all valid routes
-app.use(notFound);
+//app.use(notFound);
 
 // --- Global Error Handling Middleware ---
 // This middleware should be placed LAST
-app.use(errorHandler);
+//app.use(errorHandler);
 
 // 5. Start the server and listen for connections
 const server = app.listen(PORT, () => {
