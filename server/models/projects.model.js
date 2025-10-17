@@ -45,10 +45,16 @@ const projectSchema = new Schema({
     default: [],
     set: (v) => Array.isArray(v) ? v.map(tag => tag.toLowerCase().trim()).filter(Boolean) : [],
   },
+  sanityId: { // Add this for reliable upsert logic
+        type: String,
+        required: true,
+        unique: true,
+        index: true
+  },
   categories: [{
     type: Schema.Types.ObjectId,
     ref: 'Category',
-    required: [true, 'At least one category is required for the project.']
+   // required: [true, 'At least one category is required for the project.']
   }],
   // --- Correct Placement for Slug Field ---
   slug: {
