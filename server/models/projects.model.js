@@ -5,14 +5,13 @@ const slugify = require('slugify'); // Import slugify
 
 /**
  * @description Schema for the Project collection.
- * Includes fields for project details, URLs, image, tags, categories, and a unique slug.
- * Categories are referenced from the Category model.
+ * Includes fields for project details, URLs, image, tags, categories, sanityId, and a unique slug.
  */
 const projectSchema = new Schema({
   projectName: {
     type: String,
-    required: [true, 'Project name is required.'], // Custom error message
-    trim: true, // Automatically remove whitespace from the beginning/end
+    required: [true, 'Project name is required.'],
+    trim: true,
     minlength: [3, 'Project name must be at least 3 characters long.'],
     maxlength: [100, 'Project name cannot exceed 100 characters.'],
   },
@@ -26,43 +25,44 @@ const projectSchema = new Schema({
   liveUrl: {
     type: String,
     trim: true,
-    // Add a simple regex validation for URL format if desired
-    // match: [/^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/, 'Please enter a valid URL for the live demo.'],
   },
   githubUrl: {
     type: String,
     trim: true,
-    // match: [/^https?:\/\/(www\.)?github\.com\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+(\/.*)?$/, 'Please enter a valid GitHub URL.'],
   },
   imageUrl: {
     type: String,
     trim: true,
-    // You might want to store image URLs from Sanity or a CDN
-    // match: [/^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/, 'Please enter a valid URL for the project image.'],
   },
   tags: {
     type: [String],
     default: [],
     set: (v) => Array.isArray(v) ? v.map(tag => tag.toLowerCase().trim()).filter(Boolean) : [],
   },
-  sanityId: { // Add this for reliable upsert logic
-        type: String,
-        required: true,
-        unique: true,
-        index: true
+  
+  // === CRITICAL FIX 1: Unique ID for Sanity Sync ===
+  sanityId: {
+    type: String,
+    required: [true, 'Sanity document ID is required for synchronization.'],
+    unique: true, 
+    index: true,
+    trim: true,
   },
+
+  // === CRITICAL FIX 2: Made optional for sync ===
+  // Sanity only sends strings; actual ObjectIDs must be resolved separately if categories are needed.
   categories: [{
     type: Schema.Types.ObjectId,
     ref: 'Category',
-   // required: [true, 'At least one category is required for the project.']
+    // Removed 'required' validation for webhook compatibility
   }],
-  // --- Correct Placement for Slug Field ---
+  
   slug: {
     type: String,
-    unique: true, // Crucial for unique URLs
+    unique: true,
     lowercase: true,
     trim: true,
-    index: true, // Creates an index for faster slug-based lookups
+    index: true,
   },
 }, {
   timestamps: true,
@@ -83,12 +83,13 @@ projectSchema.pre('save', async function(next) {
   this.description = this.description.trim();
 
   // 3. Generate Slug (if not already set or if project name is modified)
+  // The 'pre' hook logic remains correct and does not need modification for the new 'sanityId' field.
   if (this.isNew || this.isModified('projectName')) {
     let baseSlug = slugify(this.projectName, { lower: true, strict: true, locale: 'en' });
     let uniqueSlug = baseSlug;
     let counter = 0;
 
-    // Ensure slug uniqueness: Check if a project with this slug already exists
+    // Check for uniqueness across the collection, excluding the current document if updating.
     while (await mongoose.models.Project.exists({ slug: uniqueSlug, _id: { $ne: this._id } })) {
       counter++;
       uniqueSlug = `${baseSlug}-${counter}`;
@@ -104,8 +105,6 @@ projectSchema.virtual('shortDescription').get(function() {
 });
 
 // --- Mongoose Text Index for basic text search ---
-// This provides basic text search capabilities within MongoDB itself,
-// complementary to your more advanced Atlas Search pipeline.
 projectSchema.index({ projectName: 'text', description: 'text', tags: 'text' });
 
 

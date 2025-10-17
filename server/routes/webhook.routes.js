@@ -1,13 +1,14 @@
+// server/routes/webhook.routes.js
 const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
-// --- 1. Import Mongoose Model for Sync ---
-const ProjectModel = require('../models/projects.model');
+// Import the Project Model to use for database operations
+const ProjectModel = require('../models/projects.model'); 
 
 // --- Get secrets from environment variables ---
 const sanityWebhookSecret = process.env.SANITY_WEBHOOK_SECRET;
-const frontendUrl = process.env.NEXT_PUBLIC_VERCEL_FRONTEND_URL; // e.g., https://your-frontend.vercel.app
-const revalidateSecret = process.env.NEXT_REVALIDATE_SECRET; // A secret token you create for the revalidation endpoint
+const frontendUrl = process.env.NEXT_PUBLIC_VERCEL_FRONTEND_URL; 
+const revalidateSecret = process.env.NEXT_REVALIDATE_SECRET; 
 
 router.post('/webhook/sync', express.json(), async (req, res) => {
     // --- 1. Enhanced Security Checks ---
@@ -37,72 +38,48 @@ router.post('/webhook/sync', express.json(), async (req, res) => {
         return res.status(500).send('Internal Server Error during signature verification.');
     }
 
-    // --- 3. Process the Validated Payload ---
+    // --- 3. Process the Validated Payload & Sync DB ---
     try {
         const { _id, _type, operation } = req.body;
         console.log(`✅ Webhook received and validated for type: ${_type}, ID: ${_id}, Operation: ${operation}`);
 
-        // ----------------------------------------------------
-        //        START: MONGODB SYNCHRONIZATION LOGIC
-        // ----------------------------------------------------
-
         if (_type === 'project' && (operation === 'create' || operation === 'update')) {
             console.log(`Attempting to sync Sanity Project ${_id} to MongoDB...`);
 
-            // MAPPING ASSUMPTIONS: 
-            // - The Sanity 'title' is mapped to Mongo 'projectName'.
-            // - Sanity fields like 'liveUrl' and 'githubUrl' exist and match Mongo model names.
-            // - Sanity's image field ('mainImage' object) is difficult to map directly to a string 'imageUrl'.
-            //   You must use the Sanity Image URL builder on the backend or adjust your model.
-            //   For now, we map a simple string, which you'll need to update.
-            
+            // Map fields from the Sanity payload (which uses keys like 'projectName', 'tags', etc.)
             const projectPayload = {
-                // Best Practice: Use the Sanity _id as a unique foreign key in MongoDB
+                // Use Sanity's unique ID as the foreign key in MongoDB
                 sanityId: _id, 
                 
-                // Map fields from Sanity payload (assuming Sanity sends the full document body)
-                projectName: req.body.title || req.body.projectName, // Sanity often uses 'title'
+                // Map the rest of the fields directly. 
+                // NOTE: 'projectName' may be 'title' if your Sanity schema uses 'title' instead of 'projectName'
+                projectName: req.body.projectName, 
                 description: req.body.description,
                 liveUrl: req.body.liveUrl,
                 githubUrl: req.body.githubUrl,
-                
-                // --- CATEGORIES & TAGS WARNING ---
-                // If the MongoDB model requires categories (ObjectIDs), you MUST resolve the 
-                // Sanity category references here. For now, passing an empty array or an array of tags (strings).
-                tags: req.body.tags || [], 
-                categories: [], // Assuming you made categories optional in the Mongoose model (as discussed)
-                
-                // TEMPORARY IMAGE URL MAPPING: This needs to be resolved using Sanity Image URL Builder
-                imageUrl: req.body.imageUrl || 'image-url-resolution-needed',
+                imageUrl: req.body.imageUrl, 
+                tags: req.body.tags || [],
+                // Pass an empty array since the required validation was removed
+                categories: [], 
             };
-
-            // Use findOneAndUpdate for UPSERT (Update OR Insert)
+            
+            // Upsert Logic: Find by the unique sanityId. Insert if not found (upsert: true).
             const savedProject = await ProjectModel.findOneAndUpdate(
-                // Find criteria: Use the Sanity ID to reliably find the document.
-                // NOTE: Your Mongoose Project model needs a 'sanityId' field for this to work robustly.
-                { sanityId: _id }, 
-                
-                // Update/Insert Data
-                projectPayload,
-                
-                // Options: upsert: true means insert if no document is found. new: true returns the updated document.
-                { upsert: true, new: true, runValidators: true }
+                { sanityId: _id },      // 1. Find the project by its Sanity ID
+                projectPayload,         // 2. Data to update/insert
+                { 
+                    upsert: true, 
+                    new: true, 
+                    runValidators: true // Ensure required fields (like projectName and sanityId) are present
+                }
             );
 
             console.log(`✅ MongoDB synced: Project ${savedProject.projectName} (Mongo ID: ${savedProject._id}, Operation: ${operation}).`);
         }
 
-        // ----------------------------------------------------
-        //         END: MONGODB SYNCHRONIZATION LOGIC
-        // ----------------------------------------------------
-
-
         // --- 4. Trigger Frontend Revalidation (The key to seeing updates live) ---
         if (frontendUrl && revalidateSecret) {
-            // Define the paths on your frontend you want to update.
-            // For a project change, you want to update the main projects page.
             const pathToRevalidate = '/projects'; 
-
             console.log(`🚀 Triggering revalidation for path: ${pathToRevalidate}`);
 
             // Send a POST request to your Next.js app's revalidation API route.
@@ -131,8 +108,9 @@ router.post('/webhook/sync', express.json(), async (req, res) => {
         res.status(200).json({ message: 'Webhook processed, MongoDB synced, and revalidation triggered.' });
 
     } catch (error) {
-        console.error('❌ Error processing webhook payload or triggering revalidation:', error);
-        res.status(500).json({ message: 'Failed to process webhook.' });
+        console.error('❌ Error processing webhook payload or syncing DB:', error);
+        // It's crucial to return a 500 status on failure so Sanity attempts to retry the webhook
+        res.status(500).json({ message: 'Failed to process webhook.', details: error.message }); 
     }
 });
 
