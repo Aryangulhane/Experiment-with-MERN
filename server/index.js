@@ -9,7 +9,7 @@ require('dotenv').config(); // Load environment variables from .env file
 // --- Security Middleware ---
 const helmet = require('helmet'); // Helps secure your Express apps by setting various HTTP headers
 const rateLimit = require('express-rate-limit'); // Basic rate-limiting middleware to prevent abuse
-const xss = require('xss-clean'); // Sanitizes user input coming from POST body, GET queries, and URL params
+//const xss = require('xss-clean'); // Sanitizes user input coming from POST body, GET queries, and URL params
 
 // --- Import Route Files ---
 const projectsRoutes = require('./routes/projects.routes');
@@ -51,7 +51,7 @@ app.use(cors({
 
 // Security Middleware
 app.use(helmet()); // Set security-related HTTP headers
-app.use(xss());    // Sanitize user input
+//app.use(xss());    // Sanitize user input
 
 // Rate Limiting (apply to all requests or specific routes)
 // 100 requests per 15 minutes per IP
